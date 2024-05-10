@@ -1,0 +1,137 @@
+# You may remove this workflow once the repository has been bootstrapped
+name: Infrastructure Modules Bootstrap
+
+env:
+  GRUNTWORK_INSTALLER_VERSION: v0.0.39
+  BOILERPLATE_VERSION: v0.5.12
+  ARCHITECTURE_CATALOG_MODULES_VERSION: v2.0.12
+  SERVICE_CATALOG_VERSION: v0.111.2
+  VPC_VERSION: v0.26.22
+
+on:
+  workflow_dispatch:
+    inputs:
+      DefaultRegion:
+        description: "The default region to use for AWS resources used in example code and automated tests."
+        type: string
+        required: false
+        default: "us-east-1"
+      UsingRepoCopier:
+        description: "Are you using repo-copier?"
+        type: boolean
+        required: false
+      GWCopiedReposNamePrefix:
+        description: "The prefix, if any, of repos copied to your org via repo-copier: e.g., gw-"
+        type: string
+        required: false
+        default: ""
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # Enable tmate debugging of manually-triggered workflows if the input option was provided
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        if: ${{ inputs.with_ssh_enabled }}
+        with:
+          detached: true
+
+      - name: Get Repo Info
+        id: extract_repo_info
+        env:
+          FULL_REPO_NAME: ${{ github.repository }}
+        run: |
+          fullRepoName="$FULL_REPO_NAME"
+          IFS='/' read -ra repoInfo <<< "$fullRepoName"
+          owner="${repoInfo[0]}"
+          repoName="${repoInfo[1]}"
+          echo "Owner: $owner"
+          echo "Repository Name: $repoName"
+          echo "owner=$owner" >> $GITHUB_OUTPUT
+          echo "repo_name=$repoName" >> $GITHUB_OUTPUT
+
+      - name: Check out this repo
+        uses: actions/checkout@v3
+        with:
+          path: ${{ steps.extract_repo_info.outputs.repo_name }}
+
+      - name: Check out terraform-aws-architecture-catalog repo
+        uses: actions/checkout@v3
+        with:
+          repository: gruntwork-io/terraform-aws-architecture-catalog
+          token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
+          path: terraform-aws-architecture-catalog
+          ref: ${{ env.ARCHITECTURE_CATALOG_MODULES_VERSION }}
+
+      - name: Install boilerplate using Gruntwork Installer
+        run: |
+          curl -Ls https://raw.githubusercontent.com/gruntwork-io/gruntwork-installer/main/bootstrap-gruntwork-installer.sh | bash /dev/stdin --version "$GRUNTWORK_INSTALLER_VERSION"
+          gruntwork-install --binary-name boilerplate --repo https://github.com/gruntwork-io/boilerplate --tag "$BOILERPLATE_VERSION"
+
+      - name: Determine Repo Base URL
+        id: determine_repo_base_url
+        env:
+          USING_REPO_COPIER: ${{ inputs.UsingRepoCopier }}
+          OWNER: ${{ steps.extract_repo_info.outputs.owner }}
+        run: |
+          repo_base_url='github.com/gruntwork-io'
+          if [[ "$USING_REPO_COPIER" = "true" ]]; then
+            repo_base_url="github.com/$OWNER"
+          fi
+
+          echo "repo_base_url=$repo_base_url" >> $GITHUB_OUTPUT
+
+      - name: Run boilerplate to generate code
+        working-directory: ${{ steps.extract_repo_info.outputs.repo_name }}
+        env:
+          REPO_BASE_URL: ${{ steps.determine_repo_base_url.outputs.repo_base_url }}
+          INFRA_MODULES_REPO_NAME: ${{ steps.extract_repo_info.outputs.repo_name }}
+          GW_COPIED_REPOS_NAME_PREFIX: ${{ inputs.GWCopiedReposNamePrefix }}
+          DEFAULT_REGION: ${{ inputs.DefaultRegion }}
+          SERVICE_CATALOG_VERSION: ${{ env.SERVICE_CATALOG_VERSION }}
+          VPC_VERSION: ${{ env.VPC_VERSION }}
+        run: |
+          # The value of GW_COPIED_REPOS_NAME_PREFIX is interpolated as empty quotes when the value is empty
+          # to mitigate the impact of this bug:
+          # https://github.com/gruntwork-io/boilerplate/issues/172
+
+          boilerplate \
+            --template-url "../terraform-aws-architecture-catalog//templates/devops-foundations-infrastructure-modules" \
+            --output-folder . \
+            --var RepoBaseUrl="$REPO_BASE_URL" \
+            --var InfraModulesRepoName="$INFRA_MODULES_REPO_NAME" \
+            --var GWCopiedReposNamePrefix="${GW_COPIED_REPOS_NAME_PREFIX:-\"\"}" \
+            --var DefaultRegion="$DEFAULT_REGION" \
+            --var ServiceCatalogVersion="$SERVICE_CATALOG_VERSION" \
+            --var VpcVersion="$VPC_VERSION" \
+            --non-interactive
+
+      - name: Clean Up Old Assets
+        working-directory: ${{ steps.extract_repo_info.outputs.repo_name }}
+        run: |
+          rm assets/CUSTOMER_BOOTSTRAP_ACCESS.png
+          rm assets/GRUNTWORK_CODE_ACCESS.png
+
+      - name: Create Pull Request
+        id: create_pr
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.CUSTOMER_BOOTSTRAP_ACCESS_TOKEN }}
+          path: ${{ steps.extract_repo_info.outputs.repo_name }}
+          branch: "bootstrap-repository"
+          commit-message: "Bootstrap infrastructure-modules repository"
+          title: "Bootstrap infrastructure-modules repository"
+          reviewers: "${{ github.actor }}" # Intended to add the actor as a reviewer NOT overriding code-owners
+          body: |
+            This pull request adds everything required to set up your `infrastructure-modules` repository.
+            After merging, consult the updated `README.md` for information on how to make use of it.
+
+            - [ ] Delete the `CUSTOMER_BOOTSTRAP_ACCESS_TOKEN` GitHub Actions secret from this repository. If you created an Organizational Secret, remove if this is the last repository you are bootstrapping.
+
+      - name: Show Pull Request URL
+        if: ${{ always() }}
+        env:
+          PR_URL: ${{ steps.create_pr.outputs.pull-request-url }}
+        run: |
+          echo "::notice title=Pull Request Created!::See created Pull Request: $PR_URL"
