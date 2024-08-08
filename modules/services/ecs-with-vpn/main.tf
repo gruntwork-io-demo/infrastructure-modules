@@ -16,7 +16,7 @@ module "ecs" {
   cluster_instance_type = var.cluster_instance_type
 
   cluster_instance_keypair_name = var.cluster_instance_keypair_name
-  cluster_instance_user_data = "#!/bin/bash\n echo \"ECS_CLUSTER=${var.cluster_name}\" >> /etc/ecs/ecs.config"
+  cluster_instance_user_data = "#!/bin/bash\n echo \"ECS_CLUSTER=${local.cluster_name}\" >> /etc/ecs/ecs.config\n echo \"ECS_AVAILABLE_LOGGING_DRIVERS=[\"json-file\",\"awslogs\",\"logentries\"]\" >> /etc/ecs/ecs.config"
 
   vpc_id         = module.vpc.vpc_id
   vpc_subnet_ids = keys(module.vpc.private_app_subnets)
