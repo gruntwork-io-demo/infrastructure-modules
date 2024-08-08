@@ -23,7 +23,7 @@ module "ecs" {
 
 module "service" {
   source                  = "git::https://github.com/gruntwork-io/terraform-aws-ecs.git//.//modules/ecs-service?ref=v0.38.1"
-  service_name            = "allinonetestservice"
+  service_name            = var.service_name
   ecs_cluster_arn         = module.ecs.ecs_cluster_arn
   desired_number_of_tasks = 1
 
