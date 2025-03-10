@@ -52,12 +52,12 @@ jobs:
           echo "repo_name=$repoName" >> $GITHUB_OUTPUT
 
       - name: Check out this repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: ${{ steps.extract_repo_info.outputs.repo_name }}
 
       - name: Check out terraform-aws-architecture-catalog repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: gruntwork-io/terraform-aws-architecture-catalog
           token: ${{ secrets.GRUNTWORK_CODE_ACCESS_TOKEN }}
