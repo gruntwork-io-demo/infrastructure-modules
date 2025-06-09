@@ -14,7 +14,7 @@ terraform {
 # ---------------------------------------------------------------------------------------------------------------------
 
 module "aurora_postgresql" {
-  source = "git@github.com:gruntwork-io/terraform-aws-service-catalog.git//modules/data-stores/aurora?ref=v0.111.2"
+  source = "git@github.com:gruntwork-io/csmterraform-aws-service-catalog.git//modules/data-stores/aurora?ref=v0.111.2"
 
   name            = var.name
   db_name         = var.db_name

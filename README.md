@@ -98,9 +98,9 @@ To use a module in your `infrastructure-live` repository, create a `terragrunt.h
 **example_app/terragrunt.hcl**
 
 ```hcl
-# Include the root `terragrunt.hcl` configuration, which has settings common across all environments & components.
+# Include the root terragrunt configuration, which has settings common across all environments & components.
 include "root" {
-  path = find_in_parent_folders()
+  path = find_in_parent_folders("root.hcl")
 }
 
 # Use Terragrunt to download the module code

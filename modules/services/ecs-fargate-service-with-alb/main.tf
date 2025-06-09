@@ -17,7 +17,7 @@ terraform {
 # ---------------------------------------------------------------------------------------------------------------------
 
 module "ecs_cluster" {
-  source = "git@github.com:gruntwork-io/terraform-aws-service-catalog.git//modules/services/ecs-fargate-cluster?ref=v0.111.2"
+  source = "git@github.com:gruntwork-io/csmterraform-aws-service-catalog.git//modules/services/ecs-fargate-cluster?ref=v0.111.2"
 
   cluster_name = var.service_name
 }
@@ -45,7 +45,7 @@ locals {
 }
 
 module "ecs_service" {
-  source = "git@github.com:gruntwork-io/terraform-aws-service-catalog.git//modules/services/ecs-service?ref=v0.111.2"
+  source = "git@github.com:gruntwork-io/csmterraform-aws-service-catalog.git//modules/services/ecs-service?ref=v0.111.2"
 
   service_name = var.service_name
   launch_type  = "FARGATE"
@@ -125,7 +125,7 @@ locals {
 }
 
 module "alb" {
-  source = "git@github.com:gruntwork-io/terraform-aws-service-catalog.git//modules/networking/alb?ref=v0.111.2"
+  source = "git@github.com:gruntwork-io/csmterraform-aws-service-catalog.git//modules/networking/alb?ref=v0.111.2"
 
   alb_name = var.service_name
 
