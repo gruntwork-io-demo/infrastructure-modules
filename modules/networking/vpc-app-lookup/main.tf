@@ -14,7 +14,7 @@ terraform {
 # ---------------------------------------------------------------------------------------------------------------------
 
 module "vpc" {
-  source = "git@github.com:gruntwork-io/terraform-aws-vpc.git//modules/vpc-app-lookup?ref=v0.26.22"
+  source = "git@github.com:gruntwork-io/csmterraform-aws-vpc.git//modules/vpc-app-lookup?ref=v0.26.22"
 
   # Look up the VPC using tags. The VPC name is also a tag.
   tags = merge({
